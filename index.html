@@ -20,34 +20,41 @@
     function App() {
       // 預設 View 模式: joint (合併), mine (我的), spouse (先生)
       const [viewMode, setViewMode] = useState('joint');
-      // 資產隱私摺疊狀態
-      const [showAssetDetails, setShowAssetDetails] = useState(false);
+      // 資產隱私摺疊狀態 (預設開啟)
+      const [showAssetDetails, setShowAssetDetails] = useState(true);
       
       // 每月信用卡估算狀態
       const [myCard, setMyCard] = useState(35000);
       const [spouseCard, setSpouseCard] = useState(40000);
 
-      // 核心數據 (已整合 30% 所得稅級距、114-115 年收入、投資計畫與森之丘電費調整)
+      // 核心數據 (整合現況、2028整修預算與長線戰略)
       const data = {
+        currentDate: "2026年10月",
         houseName: "森之丘後山埤社區 122 號 4 樓",
-        mortgageRemaining: 16000000, // 剩餘 1600 萬
+        renovationPlan: "2028年初預計花費 20-30 萬整修浴室防水層後搬家自住",
+        mortgageRemaining: 16000000, // 目前 1600 萬
         mortgageRate: 0.02185, // 2.185%
-        rentIncome: 42000, // 房屋出租收益
+        rentIncome: 42000, // 目前房屋出租收益 (至2028年初)
         quartersFee: 3810, // 官舍管理費
-        mySalary: 250000, // 估算平均 (20~30萬)
-        spouseSalary: 275000, // 估算平均 (25~30萬+)
+        mySalary: 250000,
+        spouseSalary: 275000,
 
-        // 居住費用差異 (官舍 vs 森之丘自住)
-        housingExpenses: {
-          quartersElectricityMonthly: 500, // 官舍夏天 2 個月 1000 元 → 月均 500
-          senZhiQiuElectricityMonthly: 1300, // 森之丘夏天 2 個月 2600 元 → 月均 1300
-          electricityDiff: 800 // 月電費增加差額
+        // 存款與流動性
+        cashAssets: {
+          myDeposit: 3000000,      // 我的定存 300 萬
+          spouseDeposit: 9000000,  // 先生定存 900 萬
+          renovationBudget: 250000 // 2028整修預購準備金 (估 25 萬)
         },
 
-        // 綜合所得稅 (30% 級距，年度預估 $540,000，合併申報先生 3/5、我 2/5)
+        // 居住費用變動預估
+        housingExpenses: {
+          electricityDiff: 800
+        },
+
+        // 綜合所得稅 (30% 級距，年度預估 $540,000)
         totalIncomeTax: 540000,
 
-        // 共同公共稅費 (房屋/地價稅出租後金額 + 車輛 + 火險)
+        // 共同公共稅費 (房屋/地價稅 + 車輛 + 火險)
         jointTaxes: {
           houseTaxRental: 32535,
           landTaxRental: 12060,
@@ -57,25 +64,27 @@
 
         // 我的獨立支出 (所得稅 2/5 + 牙材/年費/研討會 + 個人保費/儲蓄)
         myTaxesAndFees: {
-          incomeTaxShare: 540000 * (2/5), // $216,000 ($18,000/月)
-          workAndMaterialFees: 66000, // 牙材 ($36,000) + 年費 ($10,000) + 研討會 ($20,000)
-          insuranceAndSavings: 143640 // 個人保費/儲蓄金
+          incomeTaxShare: 540000 * (2/5),
+          workAndMaterialFees: 66000,
+          insuranceAndSavings: 143640
         },
 
         // 先生的獨立支出 (所得稅 3/5 + 個人保費/規費)
         spouseTaxesAndFees: {
-          incomeTaxShare: 540000 * (3/5), // $324,000 ($27,000/月)
-          workAndInsurance: 150000 // 先生個人保費與專業規費
+          incomeTaxShare: 540000 * (3/5),
+          workAndInsurance: 150000
         },
 
         // 每月定期定額投資與定期換匯計畫
         investments: {
           myTaiwanStock: 40000,   // 我的 0050 台股
-          myUsdFx: 40000,         // 我的定期換匯 (台幣轉美金)
+          myUsdFx: 40000,         // 我的定期換匯
           spouseTaiwanStock: 40000,// 先生台股
           spouseUsStock: 20000     // 先生美股
         }
       };
+
+      const totalDeposit = data.cashAssets.myDeposit + data.cashAssets.spouseDeposit;
 
       // 計算共同年度稅費總和與月平攤
       const jointAnnualTotal = Object.values(data.jointTaxes).reduce((a, b) => a + b, 0);
@@ -89,9 +98,9 @@
       const spouseAnnualTotal = Object.values(data.spouseTaxesAndFees).reduce((a, b) => a + b, 0);
       const spouseMonthlyReserve = Math.round(spouseAnnualTotal / 12);
 
-      // 計算房貸月利息 (1600萬 * 2.185% / 12)
+      // 目前 1600 萬房貸月利息 (1600萬 * 2.185% / 12)
       const monthlyInterest = Math.round((data.mortgageRemaining * data.mortgageRate) / 12);
-      // 以房養房每月淨收益
+      // 現階段以房養房每月淨收益
       const netRentBenefit = data.rentIncome - monthlyInterest;
 
       // 計算定期投資/換匯總額
@@ -108,7 +117,7 @@
         ? myCard + spouseCard 
         : (viewMode === 'mine' ? myCard : spouseCard);
 
-      // 依視角計算固定與預提費用 (已加入電費調整項目)
+      // 固定與預提費用
       const currentFixedExpense = viewMode === 'joint'
         ? data.quartersFee + monthlyInterest + jointMonthlyReserve + myMonthlyReserve + spouseMonthlyReserve + data.housingExpenses.electricityDiff
         : (viewMode === 'mine' 
@@ -120,7 +129,7 @@
         ? totalInvestment
         : (viewMode === 'mine' ? myInvestmentTotal : spouseInvestmentTotal);
 
-      // 扣除固定費用、卡費與定期投資後的每月剩餘現金流
+      // 每月剩餘現金流
       const currentNetCashFlow = currentIncome - currentFixedExpense - currentInvestment - currentCard;
 
       return (
@@ -128,18 +137,20 @@
           {/* Header & 視角切換器 */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">家庭財務戰略儀表板</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-slate-900">家庭財務戰略儀表板</h1>
+                <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md border border-slate-200">{data.currentDate}</span>
+              </div>
               
-              {/* 隱私可折疊資產資訊 */}
               <button 
                 onClick={() => setShowAssetDetails(!showAssetDetails)}
                 className="text-xs text-slate-500 hover:text-slate-700 mt-2 flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200 transition-all"
               >
-                <span>{showAssetDetails ? '🔒 隱藏資產與貸款細節' : '👁️ 查看資產與貸款細節'}</span>
+                <span>{showAssetDetails ? '🔒 隱藏資產與時間軸細節' : '👁️️ 查看資產與時間軸細節'}</span>
               </button>
             </div>
             
-            {/* 視角切換按鈕 */}
+            {/* 視角切換 */}
             <div className="flex bg-slate-100 p-1 rounded-xl">
               <button 
                 onClick={() => setViewMode('joint')}
@@ -162,13 +173,19 @@
             </div>
           </div>
 
-          {/* 折疊收合的資產區域 */}
+          {/* 資產與 2028 搬家規劃時程表 */}
           {showAssetDetails && (
-            <div className="bg-slate-100 p-4 rounded-xl border border-slate-200 text-xs text-slate-600 mb-6 space-y-1 animate-fadeIn">
-              <p>📍 <strong>不動產項目：</strong>{data.houseName}</p>
-              <p>💰 <strong>剩餘貸款：</strong>${data.mortgageRemaining.toLocaleString()} 元 (利率 2.185%)</p>
-              <p>🏠 <strong>居住現況：</strong>醫院官舍 (月管理費 ${data.quartersFee.toLocaleString()})</p>
-              <p>⚡ <strong>電費估算：</strong>官舍夏期約 $500/月 vs 森之丘夏期約 $1,300/月 (預估月增 $800)</p>
+            <div className="bg-slate-100 p-4 rounded-xl border border-slate-200 text-xs text-slate-600 mb-6 grid grid-cols-1 md:grid-cols-2 gap-3 animate-fadeIn">
+              <div className="space-y-1 bg-white p-3 rounded-lg border border-slate-200">
+                <p className="font-bold text-slate-800">📅 房屋與搬家時程戰略：</p>
+                <p>• <strong>現狀 (至 2028 年初)：</strong>出租中，每月收租 $42,000 支應房貸利息。</p>
+                <p>• <strong>2028 年初里程碑：</strong>租客預計退租 → 規劃花費 <strong>$20-30 萬</strong> 整修浴室防水層 → 順暢搬入住森之丘。</p>
+              </div>
+              <div className="space-y-1 bg-white p-3 rounded-lg border border-slate-200">
+                <p className="font-bold text-slate-800">🏦 存款池與流動資產：</p>
+                <p>• 先生定存 $900 萬 + 我的定存 $300 萬 = <strong>共 $1,200 萬</strong></p>
+                <p>• 策略：現階段維持定存蓄水，視市場狀況於底層彈性選擇是否提前還本 $100 萬。</p>
+              </div>
             </div>
           )}
 
@@ -177,12 +194,12 @@
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
               <span className="text-xs font-medium text-slate-500">當前總流入 (月)</span>
               <p className="text-xl font-bold text-emerald-600 mt-1">${currentIncome.toLocaleString()}</p>
-              <p className="text-[11px] text-slate-400 mt-1">{viewMode === 'joint' ? '含租金 $42,000' : '已扣預扣稅費'}</p>
+              <p className="text-[11px] text-slate-400 mt-1">{viewMode === 'joint' ? '含目前租金 $42,000' : '已扣預扣稅費'}</p>
             </div>
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
               <span className="text-xs font-medium text-slate-500">固定與預提扣繳 (月)</span>
               <p className="text-xl font-bold text-rose-500 mt-1">${currentFixedExpense.toLocaleString()}</p>
-              <p className="text-[11px] text-slate-400 mt-1">含官舍/利息/30%稅/電費差額</p>
+              <p className="text-[11px] text-slate-400 mt-1">含房貸利息/30%稅/預提</p>
             </div>
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
               <span className="text-xs font-medium text-slate-500">定期投資/換匯 (月)</span>
@@ -192,25 +209,28 @@
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
               <span className="text-xs font-medium text-slate-500">自由靈活現金流 (月)</span>
               <p className="text-xl font-bold text-sky-600 mt-1">${currentNetCashFlow.toLocaleString()}</p>
-              <p className="text-[11px] text-slate-400 mt-1">扣除所有固定費與投資後</p>
+              <p className="text-[11px] text-slate-400 mt-1">扣除固定費與投資後</p>
             </div>
           </div>
 
-          {/* 房貸與租金對抵專區 (僅在總覽視角顯示) */}
+          {/* 房貸與租金對抵專區 */}
           {viewMode === 'joint' && (
             <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-md mb-6">
-              <h2 className="text-lg font-bold mb-2">🏘️ 以房養房現金流對抵狀況</h2>
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-bold">🏘️ 以房養房現金流對抵狀況 (出租階段)</h2>
+                <span className="text-xs bg-emerald-500/20 text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-500/30">租金對抵利息中</span>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-slate-200 text-sm mt-4">
                 <div className="bg-white/10 p-3 rounded-xl">
                   <span className="block opacity-80">每月租金收入</span>
                   <span className="text-lg font-bold text-emerald-400">+${data.rentIncome.toLocaleString()}</span>
                 </div>
                 <div className="bg-white/10 p-3 rounded-xl">
-                  <span className="block opacity-80">房貸每月利息 (2.185%)</span>
+                  <span className="block opacity-80">1600萬房貸每月利息 (2.185%)</span>
                   <span className="text-lg font-bold text-rose-300">-${monthlyInterest.toLocaleString()}</span>
                 </div>
                 <div className="bg-white/10 p-3 rounded-xl border border-emerald-500/30">
-                  <span className="block opacity-80">淨租金溢額 (自動幫養房)</span>
+                  <span className="block opacity-80">淨租金溢額 (可蓄水累積整修金)</span>
                   <span className="text-lg font-bold text-emerald-300">+${netRentBenefit.toLocaleString()}</span>
                 </div>
               </div>
@@ -219,7 +239,6 @@
 
           {/* 投資資產配置與預提水庫 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* 左側：定期定額與美金換匯計畫 */}
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
               <h3 className="text-base font-bold text-slate-900 mb-3">📈 每月自動化投資與換匯水庫</h3>
               <div className="space-y-2 text-xs">
@@ -258,7 +277,6 @@
               </div>
             </div>
 
-            {/* 右側：所得稅 30% 級距與大額預提 */}
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
               <h3 className="text-base font-bold text-slate-900 mb-3">🗓️ 30% 稅率與大額費用預提水庫</h3>
               
@@ -268,7 +286,6 @@
                     <span>👤 我的預提 (所得稅2/5 + 牙材/學費/保費)：</span>
                     <span className="font-bold text-sky-700">${myMonthlyReserve.toLocaleString()} / 月</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-0.5">含所得稅分攤 $18,000/月 ($216,000/年)</p>
                 </div>
 
                 <div className="p-2 bg-slate-50 rounded-lg">
@@ -276,7 +293,6 @@
                     <span>👨‍💼 先生預提 (所得稅3/5 + 個人保費/規費)：</span>
                     <span className="font-bold text-sky-700">${spouseMonthlyReserve.toLocaleString()} / 月</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-0.5">含所得稅分攤 $27,000/月 ($324,000/年)</p>
                 </div>
 
                 <div className="flex justify-between p-2 bg-slate-50 rounded-lg">
